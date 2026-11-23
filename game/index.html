@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CALA VERDE — open-world crime in a golden-hour coastal city</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #1a2233;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif; color: #fff; }
+  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .panel { background: rgba(10, 14, 24, 0.62); border: 1px solid rgba(255, 194, 26, 0.35);
+    border-radius: 8px; padding: 8px 12px; backdrop-filter: blur(2px); }
+  #hud { position: fixed; inset: 0; pointer-events: none; display: none; z-index: 5; }
+  #top-left { position: absolute; top: 12px; left: 12px; min-width: 210px; }
+  #cash { font-size: 26px; font-weight: 800; color: #7dff9a; text-shadow: 0 2px 4px #000; }
+  #respect { font-size: 11px; letter-spacing: 2px; color: #ffd27a; margin-top: 2px; }
+  #health-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+  #health-bar { flex: 1; height: 10px; background: rgba(255,255,255,0.2); border-radius: 5px; overflow: hidden; }
+  #health-fill { height: 100%; width: 100%; background: linear-gradient(90deg, #37d67a, #a5e34d); }
+  #health-text { font-size: 12px; font-weight: 700; }
+  #stars { position: absolute; top: 12px; right: 12px; font-size: 30px; letter-spacing: 4px;
+    color: rgba(255,255,255,0.35); text-shadow: 0 2px 6px #000; text-align: right; }
+  #stars.hot { color: #ffd21a; }
+  #radio { position: absolute; top: 52px; right: 12px; font-size: 13px; font-weight: 700;
+    color: #ffd27a; text-shadow: 0 1px 3px #000; text-align: right; }
+  #feed { position: absolute; top: 108px; left: 12px; width: 300px; font-size: 12px; line-height: 1.35; }
+  #feed div { margin-bottom: 5px; padding: 5px 8px; background: rgba(10,14,24,0.55);
+    border-left: 3px solid #8fa8c8; border-radius: 4px; text-shadow: 0 1px 2px #000; }
+  #feed .feed-police { border-left-color: #4d8dff; }
+  #feed .feed-crew { border-left-color: #18c8a0; }
+  #feed .feed-good { border-left-color: #7dff9a; }
+  #feed .feed-bad { border-left-color: #ff5a4d; }
+  #minimap-wrap { position: absolute; left: 12px; bottom: 12px; }
+  #minimap { width: 180px; height: 180px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.55);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.5); background: #123a4a; }
+  #speed { position: absolute; right: 16px; bottom: 14px; text-align: right; text-shadow: 0 2px 6px #000; }
+  #speed span:first-child { font-size: 44px; font-weight: 800; }
+  #speed-unit { font-size: 14px; color: #ffd27a; margin-left: 4px; }
+  #objective-box { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
+    text-align: center; max-width: 520px; }
+  #objective { font-size: 16px; font-weight: 700; text-shadow: 0 2px 4px #000; }
+  #objective-detail { font-size: 12px; color: #ffd27a; margin-top: 2px; letter-spacing: 1px; }
+  #prompt { position: absolute; left: 50%; bottom: 86px; transform: translateX(-50%);
+    font-size: 15px; font-weight: 800; color: #ffc21a; text-shadow: 0 2px 4px #000; display: none; }
+  #banner { position: absolute; left: 50%; top: 12%; transform: translateX(-50%); text-align: center;
+    display: none; text-shadow: 0 3px 8px #000; max-width: 680px; }
+  #banner-title { font-size: 32px; font-weight: 900; letter-spacing: 3px; color: #ffc21a; }
+  #banner-sub { font-size: 16px; margin-top: 4px; color: #fff; }
+  .overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+    flex-direction: column; text-align: center; z-index: 10; pointer-events: auto;
+    background: linear-gradient(180deg, rgba(8,10,20,0.55), rgba(8,10,20,0.78)); }
+  .overlay h1 { font-size: 84px; font-weight: 900; letter-spacing: 8px; color: #ffc21a;
+    text-shadow: 0 4px 0 #7a4a00, 0 8px 24px #000; }
+  .overlay h2 { font-size: 20px; font-weight: 600; color: #ffe9b0; margin-top: 6px; letter-spacing: 1px; }
+  .overlay .menu { margin-top: 26px; font-size: 15px; line-height: 1.9; color: #e8e8e8;
+    background: rgba(10,14,24,0.6); border: 1px solid rgba(255,194,26,0.35);
+    border-radius: 10px; padding: 14px 26px; text-align: left; }
+  .overlay .menu b { color: #ffc21a; }
+  .overlay .cta { margin-top: 22px; font-size: 19px; font-weight: 800; letter-spacing: 2px;
+    color: #111; background: #ffc21a; padding: 10px 28px; border-radius: 8px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.6); }
+  .overlay .save-line { margin-top: 14px; font-size: 14px; color: #ffd27a; }
+  .overlay .foot { margin-top: 18px; font-size: 12px; color: rgba(255,255,255,0.65); max-width: 560px; }
+  #complete-screen h1, #finished-screen h1 { font-size: 54px; color: #7dff9a; text-shadow: 0 4px 0 #14532a, 0 8px 24px #000; }
+  #busted-screen h1, #wasted-screen h1 { font-size: 54px; color: #ff5a4d; text-shadow: 0 4px 0 #5a0f0a, 0 8px 24px #000; }
+  #complete-screen { background: linear-gradient(180deg, rgba(8,10,20,0.35), rgba(8,10,20,0.55)); }
+  .big-stat { font-size: 34px; font-weight: 900; color: #7dff9a; margin-top: 10px; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.min.js" } }
+</script>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="hud">
+  <div id="top-left" class="panel">
+    <div id="cash">$800</div>
+    <div id="respect">RESPECT 0</div>
+    <div id="health-row"><div id="health-bar"><div id="health-fill"></div></div><span id="health-text">100</span></div>
+  </div>
+  <div id="stars">☆☆☆☆☆</div>
+  <div id="radio">♪ VERDE FM</div>
+  <div id="feed"></div>
+  <div id="minimap-wrap"><canvas id="minimap" width="180" height="180"></canvas></div>
+  <div id="speed"><span>ON FOOT</span><span id="speed-unit"></span></div>
+  <div id="objective-box" class="panel">
+    <div id="objective">Press ENTER to start</div>
+    <div id="objective-detail"></div>
+  </div>
+  <div id="prompt"></div>
+  <div id="banner"><div id="banner-title"></div><div id="banner-sub"></div></div>
+</div>
+
+<div id="title-screen" class="overlay" style="display:flex">
+  <h1>CALA VERDE</h1>
+  <h2>An open-world crime story in a golden-hour coastal city</h2>
+  <div class="menu">
+    <b>WASD / arrows</b> — walk &amp; drive &nbsp;·&nbsp; <b>Mouse drag</b> — camera &nbsp;·&nbsp; <b>Wheel</b> — zoom<br>
+    <b>E</b> — steal / enter / exit car &nbsp;·&nbsp; <b>F</b> — fire &nbsp;·&nbsp; <b>1 / 2 / 3</b> — pistol / SMG / shotgun<br>
+    <b>Space</b> — handbrake &nbsp;·&nbsp; <b>R</b> — radio &nbsp;·&nbsp; <b>C</b> — crew &nbsp;·&nbsp; <b>Q</b> — crew ability<br>
+    <b>B</b> — buy cars at the garage &nbsp;·&nbsp; <b>P</b> — pause &nbsp;·&nbsp; <b>M</b> — mute<br>
+    8 story jobs · 5-star CVPD dispatch · roadblocks · CONDOR-2 helicopter<br>
+    Crew: Rico (driver) + Mara (hacker) · Garage · Saves · 3 synth radio stations
+  </div>
+  <div class="cta">PRESS ENTER — OR CLICK — TO PLAY</div>
+  <div class="save-line" id="title-save">No save yet — press ENTER for a new game</div>
+  <div class="foot">You are Leo Marín, a wheelman new to Cala Verde. Original city, characters, story, art
+  and music — built by an AI agent for make.fun's “Make GTA 6” bounty.</div>
+</div>
+
+<div id="pause-screen" class="overlay">
+  <h1>PAUSED</h1>
+  <h2>Cala Verde waits. The CVPD does not.</h2>
+  <div class="cta">PRESS P TO RESUME</div>
+</div>
+
+<div id="complete-screen" class="overlay">
+  <h1 id="complete-title">JOB COMPLETE</h1>
+  <div class="big-stat" id="complete-reward">+$0</div>
+  <h2 id="complete-cash"></h2>
+  <div class="cta">PRESS ENTER FOR THE NEXT JOB</div>
+</div>
+
+<div id="busted-screen" class="overlay">
+  <h1>BUSTED</h1>
+  <h2>The CVPD caught up with you. The crew posts your bail — again.</h2>
+  <div class="cta">PRESS ENTER TO RETRY THE JOB</div>
+</div>
+
+<div id="wasted-screen" class="overlay">
+  <h1>WASTED</h1>
+  <h2>Leo goes down — but Cala Verde is not done with him yet.</h2>
+  <div class="cta">PRESS ENTER TO RETRY THE JOB</div>
+</div>
+
+<div id="finished-screen" class="overlay">
+  <h1>CALA VERDE COMPLETE</h1>
+  <h2>The Verde Job is done. The bank, the boat, the sunset — all yours, Leo.</h2>
+  <div class="big-stat" id="finished-cash"></div>
+  <div class="cta">PRESS ENTER TO FREE ROAM</div>
+</div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
